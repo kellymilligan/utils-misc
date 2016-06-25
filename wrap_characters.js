@@ -16,6 +16,9 @@ define([
         to ensure they don't get split at line-end, and wraps
         words or individual characters in a span structure.
 
+        $element       $ object    Element whose child characters to manipulate
+        wrapAsWords    bool        Flag whether to wrap as words or individal characters
+
     */
 
     return function ($element, wrapAsWords) {
