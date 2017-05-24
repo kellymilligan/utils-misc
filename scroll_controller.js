@@ -1,5 +1,5 @@
 /*
-  An ES6 singleton scroll controller for handling the window's scrollbar.
+    An ES6 singleton scroll controller for handling the window's scrollbar.
 */
 
 const DEBUG = false;
@@ -32,6 +32,11 @@ class ScrollController {
     getPosition() {
 
         return this._position;
+    }
+
+    getCapturePosition() {
+
+        return this._position_stack[ 0 ];
     }
 
     getHeight() {
@@ -138,12 +143,19 @@ class ScrollController {
         if ( revert ) { this._updatePosition( this._position_stack.pop() ); }
     }
 
-    resize( height ) {
+    resize(height) {
 
         if ( !this.activated ) { return; }
 
         // Update the expander
         this._updateHeight( height );
+    }
+
+    reposition(y) {
+
+        if ( !this.activated ) { return; }
+
+        this._updatePosition( y );
     }
 
 }
