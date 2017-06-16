@@ -9,9 +9,6 @@
 
 export default function(element, transform) {
 
-    // If a jQuery/Zepto object use the first element in the list
-    if ( !element.nodeType ) { element = element[0]; }
-
     element.style.mozTransform = transform;
     element.style.webkitTransform = transform;
     element.style.transform = transform;

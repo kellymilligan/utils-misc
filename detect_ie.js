@@ -17,5 +17,5 @@ export default function () {
     if ( msie > 0 ) { return { flag: true, version: "<=10" }; }
     else if ( trident > 0 ) { return { flag: true, version: "11" }; }
     else if ( edge > 0 ) { return { flag: true, version: "Edge" }; }
-    else { return { flag: false }; }
+    return { flag: false };
 }
