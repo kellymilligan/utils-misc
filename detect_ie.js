@@ -14,8 +14,8 @@ export default function () {
     var trident = ua.indexOf('Trident/');
     var edge = ua.indexOf('Edge/');
 
-    if ( msie > 0 ) { return { flag: true, version: "<=10" }; }
-    else if ( trident > 0 ) { return { flag: true, version: "11" }; }
-    else if ( edge > 0 ) { return { flag: true, version: "Edge" }; }
+    if ( msie > 0 ) { return { flag: true, version: '<=10' }; }
+    else if ( trident > 0 ) { return { flag: true, version: '11' }; }
+    else if ( edge > 0 ) { return { flag: true, version: 'Edge' }; }
     return { flag: false };
 }
