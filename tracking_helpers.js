@@ -2,14 +2,17 @@
     Google Analytics tracking helpers
 */
 
-const DEBUG = true;
+const DEBUG = false;
 const ANCHOR_CLICK_DELAY = DEBUG ? 3000 : 150;
+let ga;
 
 // Debugger used in place of real 'ga' if DEBUG flag is set
 // or if the ga object hasn't been attached to the window
 let debug = function(method, parameters) {
 
-    console.warn( 'tracking.js: DEBUG flag is true or window.ga wasn\'t found. This tracking request has not been submitted to analytics.js. Here\'s the data that was supplied:' );
+    if ( DEBUG ) console.warn( 'tracking.js: DEBUG flag is true...' );
+    else console.warn( 'tracking.js: window.ga wasn\'t found. This event may have been dispatched before the async script had loaded...' );
+    console.warn( '... This tracking request has not been submitted to analytics.js. Here\'s the data that was supplied:' )
 
     console.log(
         '-------------------------------' + '\n' +
@@ -24,8 +27,16 @@ let debug = function(method, parameters) {
     );
 };
 
-const ga = DEBUG || !window.ga ? debug : window.ga;
+// Poll for analytics.js as it's loaded async. Set to the debugger on the
+// first poll and replace with the real API as soon as it's available.
+// Don't continue polling if DEBUG flag is turned on.
+let poll = function () {
 
+    ga = DEBUG || !window.ga ? debug : window.ga;
+    if ( !DEBUG && !window.ga ) { setTimeout( poll, 500 ); }
+};
+
+poll();
 
 
 /**
@@ -66,10 +77,12 @@ export function trackLinkClick(event, category, action, label, value) {
     let href = event.currentTarget.getAttribute( 'href' );
     let target = event.currentTarget.getAttribute( 'target' );
     let blank = target === '_blank' || target === 'blank';
+    // let mailto = href.indexOf( 'mailto:' ) > -1;
+    // let tel = href.indexOf( 'tel:' ) > -1;
 
     trackEvent( category, action, label, value );
 
-    if ( href && !target && !blank ) {
+    if ( href && !blank /*&& !mailto && !tel*/ ) {
 
         event.preventDefault();
         setTimeout( () => { location.href = href; }, ANCHOR_CLICK_DELAY );
