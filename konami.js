@@ -5,7 +5,7 @@
     ---
     Source: https://stackoverflow.com/a/31627191
 
-    key_code        Number      Event.keyCode value from keyboard events
+    key_code    Number      Event.keyCode value from keyboard events
 
     ---
     Returns     Boolean     flag whether sequence met with the current input
