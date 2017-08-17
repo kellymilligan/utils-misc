@@ -2,7 +2,7 @@
     Load images in the supplied manifest
 
     image_manifest      Array       array of image meta objects
-    loadedd_callback    Function    callback called when all images are loaded
+    loaded_callback     Function    callback called when all images are loaded
 
     Manifest structure:
     [
