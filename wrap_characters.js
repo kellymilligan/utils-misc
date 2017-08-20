@@ -1,91 +1,83 @@
-define([
+/*
+    Wrap individual letters and words in a span structure
+    ---
+    Very useful for animating individual letters or words
+    while maintaining CSS based layout. Wraps whole words
+    to ensure they don't get split at line-end, and wraps
+    words or individual characters in a span structure.
 
-    'jquery'
+    $element       $ object    Element whose child characters to manipulate
+    wrapAsWords    bool        Flag whether to wrap as words or individal characters
 
-], function(
+*/
 
-    $
+import $ from 'webpack-zepto';
 
-) { 'use strict';
+export default function ($element, wrapAsWords = false) {
 
-    /*
-        Wrap individual letters and words in a span structure
-        ---
-        Very useful for animating individual letters or words
-        while maintaining CSS based layout. Wraps whole words
-        to ensure they don't get split at line-end, and wraps
-        words or individual characters in a span structure.
+    let chunks = $element.text().split( ' ' );
 
-        $element       $ object    Element whose child characters to manipulate
-        wrapAsWords    bool        Flag whether to wrap as words or individal characters
+    let words = [];
+    let letters = [];
 
-    */
+    $element.empty();
 
-    return function ($element, wrapAsWords) {
+    $.each( chunks, (i, word) => {
 
-        wrapAsWords = wrapAsWords || false;
+        let $word = $( '<span class="word">' + word + '</span>' );
+        let characters = $word.text().split( '' );
 
-        var words = $element.text().split( ' ' ) ;
-        var spans = [];
+        $word.empty();
 
-        $element.empty();
+        if ( wrapAsWords ) {
 
-        $.each( words, function(i, word) {
+            let $textSpan = $( document.createElement('span') );
+            let $animSpan = $( document.createElement('span') );
 
-            var $word = $( '<span class="word">' + word + '</span>' );
-            var characters = $word.text().split( '' );
+            $textSpan.addClass( 'char-text' );
+            $textSpan.append( word );
 
-            $word.empty();
+            $animSpan.addClass( 'char-anim' );
+            $animSpan.attr( 'data-char', word ); // Add to pseudo element's content property
 
-            if ( wrapAsWords ) {
+            $word.append( $textSpan );
+            $word.append( $animSpan );
 
-                var $textSpan = $( document.createElement('span') );
-                var $animSpan = $( document.createElement('span') );
+            $word.addClass( 'char' );
+
+            words.push( $word );
+        }
+        else {
+
+            $.each( characters, (i, c) => {
+
+                let $outerSpan = $( document.createElement('span') );
+                let $textSpan = $( document.createElement('span') );
+                let $animSpan = $( document.createElement('span') );
 
                 $textSpan.addClass( 'char-text' );
-                $textSpan.append( word );
+                $textSpan.append( c );
 
                 $animSpan.addClass( 'char-anim' );
-                $animSpan.attr( 'data-char', word ); // Add to pseudo element's content property
+                $animSpan.attr( 'data-char', c ); // Add to pseudo element's content property
 
-                $word.append( $textSpan );
-                $word.append( $animSpan );
+                $outerSpan.append( $textSpan );
+                $outerSpan.append( $animSpan );
 
-                $word.addClass( 'char' );
+                $outerSpan.addClass( 'char' );
 
-                spans.push( $word );
-            }
-            else {
+                $word.append( $outerSpan );
 
-                $.each( characters, function(i, c) {
+                letters.push( $outerSpan );
+            });
+        }
 
-                    var $outerSpan = $( document.createElement('span') );
-                    var $textSpan = $( document.createElement('span') );
-                    var $animSpan = $( document.createElement('span') );
+        words.push( $word );
 
-                    $textSpan.addClass( 'char-text' );
-                    $textSpan.append( c );
+        $element[ 0 ].appendChild( $word[ 0 ] );
+        $element.append( ' ' ); // Add a white space between each word
 
-                    $animSpan.addClass( 'char-anim' );
-                    $animSpan.attr( 'data-char', c ); // Add to pseudo element's content property
+    });
 
-                    $outerSpan.append( $textSpan );
-                    $outerSpan.append( $animSpan );
-
-                    $outerSpan.addClass( 'char' );
-
-                    $word.append( $outerSpan );
-
-                    spans.push( $outerSpan );
-                });
-            }
-
-            $element.append( $word );
-            $element.append( ' ' ); // Add a white space between each word
-
-        });
-
-        return spans;
-    };
-
-});
+    return { words: words, letters: letters };
+}
