@@ -15,7 +15,7 @@
 
 import $ from 'webpack-zepto';
 
-export default function ($element/* , wrapAsWords = false */) {
+export default function ($element) {
 
     let chunks = $element.text().split( ' ' );
 
