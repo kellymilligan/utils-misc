@@ -1,259 +1,263 @@
 /*
-    A stand-alone controller class that handles user input.
-    Internally manages event bindings and input dimensions.
+  A stand-alone controller class that handles user input.
+  Internally manages event bindings and input dimensions.
 */
 
 const POINTER_DEFAULTS = {
 
-    is_down: false,
-    is_moving: false,
-
-    time_down: 0,
+    isDown: false,
+    isMoving: false,
 
     // Browser coordinates where top/left is 0/0, and bottom/right is w/h
     client: {
-        x: 0,
-        y: 0
+      x: 0,
+      y: 0,
     },
 
     // Browser coordinates offset to place origin (0/0) at viewport center
     offset: {
-        x: 0,
-        y: 0
+      x: 0,
+      y: 0,
     },
 
     // Normalized coordinates with offset origin (between -1 and 1 on both axes)
     normal: {
-        x: 0,
-        y: 0
+      x: 0,
+      y: 0,
+    },
+
+    // Distance travelled between current tick and when isDown was set
+    travel: {
+      startX: 0,
+      startY: 0,
+      x: 0,
+      y: 0,
     },
 
     // Pointer delta parameters, calculated each tick
     speed: {
-        x: 0,           // Delta on x-axis
-        y: 0,           // Delta on y-axis
-        distance: 0,    // Absolute delta
-        x_prev: 0,      // Previous normal X position, used to calculate delta
-        y_prev: 0       // Previous normal Y position, used to calculate delta
+      x: 0,                 // Delta on x-axis
+      y: 0,                 // Delta on y-axis
+      distance: 0,          // Absolute delta
+      prev: { x: 0, y: 0 }, // Previous X,y normal position, used to calculate delta
+    },
+
+  };
+
+  export default class InteractionManager {
+
+    constructor(element = document.body) {
+      this.element = element;
+
+      this.tracking = {
+        active: false,
+        touch: false,
+        pointer: Object.assign({}, POINTER_DEFAULTS),
+      };
+
+      this.env = {
+        time: {
+          now: 0,
+          delta: 0,
+          prev: 0,
+        },
+        bounds: {
+          width: 0,
+          height: 0,
+          left: 0,
+          top: 0,
+        },
+      };
+
+      // Bindings
+      this.onPointerDown = this.onPointerDown.bind(this);
+      this.onPointerMove = this.onPointerMove.bind(this);
+      this.onPointerUp = this.onPointerUp.bind(this);
+      this.onTouchStart = this.onTouchStart.bind(this);
+      this.onTouchMove = this.onTouchMove.bind(this);
+      this.onTouchEnd = this.onTouchEnd.bind(this);
     }
-};
-
-export default class InteractionManager {
-
-    constructor( element = document.body ) {
-
-        this._element = element;
-
-        this._tracking = {
-            active: false,
-            touch: false,
-            pointer: Object.assign( {}, POINTER_DEFAULTS ),
-        };
-
-        this._env = {
-            bounds: {
-                width: 0,
-                height: 0,
-                left: 0,
-                top: 0
-            }
-        };
-
-        this.prev_time = 0;
-
-        // Bindings
-        this._onPointerDown = this._onPointerDown.bind( this );
-        this._onPointerMove = this._onPointerMove.bind( this );
-        this._onPointerUp = this._onPointerUp.bind( this );
-        this._onTouchStart = this._onTouchStart.bind( this );
-        this._onTouchMove = this._onTouchMove.bind( this );
-        this._onTouchEnd = this._onTouchEnd.bind( this );
-    }
-
 
     // Public
     // ------
 
     /*
-        Start tracking interactions
-        Returns a reference to the tracking object for data access
+      Start tracking interactions
+      Returns a reference to the tracking object for data access
     */
     start() {
+      if (this.tracking.active) { console.warn('InteractionManager: start() was called while already active...'); return this.tracking; }
 
-        if ( this._tracking.active ) { console.warn( 'InteractionManager: start() was called while already active...' ); return; }
-        this._tracking.active = true;
+      this.tracking.active = true;
 
-        this._setPointer( 0, 0 );
-        this._setPointerSpeed();
-        this.refresh();
+      this.setPointer(0, 0);
+      this.setPointerSpeed();
+      this.refresh();
 
-        this._attachEvents();
+      this.attachEvents();
 
-        return this._tracking;
+      return this.tracking;
     }
 
     /*
-        Stop tracking interactions
-        Returns a reference to the tracking object for data access
+      Stop tracking interactions
+      Returns a reference to the tracking object for data access
     */
     stop() {
+      this.tracking.active = false;
+      this.tracking.pointer = Object.assign({}, POINTER_DEFAULTS);
+      this.detachEvents();
 
-        this._tracking.active = false;
-        this._tracking.pointer = Object.assign( {}, POINTER_DEFAULTS );
-        this._detachEvents();
-
-        return this._tracking;
+      return this.tracking;
     }
 
     /*
-        Refresh tracking parameters (i.e. resize bounds with window resize)
-        Dimensions can be overridden if passed as arguments
+      Retrieve the tracking object
+      Returns a reference to the tracking object for data access
     */
-    refresh(
-
-        width = this._element.offsetWidth,
-        height = this._element.offsetHeight,
-        left = this._element.offsetLeft,
-        top = this._element.offsetTop
-
-    ) {
-
-        this._env.bounds.width = width;
-        this._env.bounds.height = height;
-        this._env.bounds.left = left;
-        this._env.bounds.top = top;
+    subscribe() {
+      return this.tracking;
     }
 
+    /*
+      Refresh tracking parameters (i.e. resize bounds with window resize)
+      Dimensions can be overridden if passed as arguments
+    */
+    refresh(
+      width = this.element.offsetWidth,
+      height = this.element.offsetHeight,
+      left = this.element.offsetLeft,
+      top = this.element.offsetTop
+    ) {
+      this.env.width = width;
+      this.env.height = height;
+      this.env.left = left;
+      this.env.top = top;
+    }
 
     // Bindings
     // --------
 
-    _attachEvents() {
+    attachEvents() {
+      // Start animation loop
+      this.loop = window.requestAnimationFrame(() => this.onAnimationFrame());
 
-        this._loop = window.requestAnimationFrame( () => this._onAnimationFrame() );
+      // Listen for the interaction initiatator on the element itself, but then
+      // continue to track move and release events on the document. Allows the
+      // interaction to continue updating, even if the pointer has left the area
+      // of the tracked element.
 
-        // Listen for the interaction initiatator on the element itself, but then
-        // continue to track move and release events on the document. Allows the
-        // interaction to continue updating, even if the pointer has left the area
-        // of the tracked element.
-        this._element.addEventListener( 'mousedown', this._onPointerDown, false );
-        document.addEventListener( 'mousemove', this._onPointerMove, false );
-		document.addEventListener( 'mouseup', this._onPointerUp, false );
+      this.element.addEventListener('mousedown', this.onPointerDown, false);
+      document.addEventListener('mousemove', this.onPointerMove, false);
+      document.addEventListener('mouseup', this.onPointerUp, false);
 
-        this._element.addEventListener( 'touchstart', this._onTouchStart, false );
-		document.addEventListener( 'touchmove', this._onTouchMove, false );
-		document.addEventListener( 'touchend', this._onTouchEnd, false );
+      this.element.addEventListener('touchstart', this.onTouchStart, false);
+      document.addEventListener('touchmove', this.onTouchMove, false);
+      document.addEventListener('touchend', this.onTouchEnd, false);
     }
 
-    _detachEvents() {
+    detachEvents() {
+      window.cancelAnimationFrame(this.loop);
 
-        window.cancelAnimationFrame( this._loop );
+      this.element.removeEventListener('mousedown', this.onPointerDown, false);
+      document.removeEventListener('mousemove', this.onPointerMove, false);
+      document.removeEventListener('mouseup', this.onPointerUp, false);
 
-        this._element.removeEventListener( 'mousedown', this._onPointerDown, false );
-		document.removeEventListener( 'mousemove', this._onPointerMove, false );
-		document.removeEventListener( 'mouseup', this._onPointerUp, false );
-
-        this._element.removeEventListener( 'touchstart', this._onTouchStart, false );
-		document.removeEventListener( 'touchmove', this._onTouchMove, false );
-		document.removeEventListener( 'touchend', this._onTouchEnd, false );
+      this.element.removeEventListener('touchstart', this.onTouchStart, false);
+      document.removeEventListener('touchmove', this.onTouchMove, false);
+      document.removeEventListener('touchend', this.onTouchEnd, false);
     }
-
 
     // Helpers
     // -------
 
-    _setPointer(x, y) {
-
-        this._tracking.pointer.client.x = x - this._env.bounds.left;
-        this._tracking.pointer.client.y = y - this._env.bounds.top;
-        this._tracking.pointer.offset.x = this._tracking.pointer.client.x - ( this._env.bounds.width * 0.5 );
-        this._tracking.pointer.offset.y = this._tracking.pointer.client.y - ( this._env.bounds.height * 0.5 );
-        this._tracking.pointer.normal.x = ( this._tracking.pointer.offset.x / this._env.bounds.width ) * 2;
-        this._tracking.pointer.normal.y = ( this._tracking.pointer.offset.y / this._env.bounds.height ) * 2;
+    setPointer(x, y) {
+      this.tracking.pointer.client.x = x - this.env.left;
+      this.tracking.pointer.client.y = y - this.env.top;
+      this.tracking.pointer.offset.x = this.tracking.pointer.client.x - (this.env.width * 0.5);
+      this.tracking.pointer.offset.y = this.tracking.pointer.client.y - (this.env.height * 0.5);
+      this.tracking.pointer.normal.x = (this.tracking.pointer.offset.x / this.env.width) * 2;
+      this.tracking.pointer.normal.y = (this.tracking.pointer.offset.y / this.env.height) * 2;
     }
 
-    _setPointerSpeed() {
+    setPointerSpeed() {
+      // Axis delta
+      this.tracking.pointer.speed.x = this.tracking.pointer.normal.x - this.tracking.pointer.speed.prev.x;
+      this.tracking.pointer.speed.y = this.tracking.pointer.normal.y - this.tracking.pointer.speed.prev.y;
+      this.tracking.pointer.speed.prev.x = this.tracking.pointer.normal.x;
+      this.tracking.pointer.speed.prev.y = this.tracking.pointer.normal.y;
 
-        this._tracking.pointer.speed.x = this._tracking.pointer.normal.x - this._tracking.pointer.speed.x_prev;
-        this._tracking.pointer.speed.y = this._tracking.pointer.normal.y - this._tracking.pointer.speed.y_prev;
+      // Absolute delta
+      this.tracking.pointer.speed.distance = Math.sqrt(
+        (this.tracking.pointer.speed.x * this.tracking.pointer.speed.x) +
+        (this.tracking.pointer.speed.y * this.tracking.pointer.speed.y)
+      );
 
-        this._tracking.pointer.speed.distance = Math.sqrt(
-            this._tracking.pointer.speed.x * this._tracking.pointer.speed.x +
-            this._tracking.pointer.speed.y * this._tracking.pointer.speed.y
-        );
-
-        this._tracking.pointer.speed.x_prev = this._tracking.pointer.normal.x;
-        this._tracking.pointer.speed.y_prev = this._tracking.pointer.normal.y;
+      // Movement status
+      this.tracking.pointer.isMoving = this.tracking.pointer.isDown && this.tracking.pointer.speed.distance > 0;
     }
-
 
     // Handlers
     // --------
 
-    _onAnimationFrame() {
+    onAnimationFrame() {
+      this.env.time.now = Date.now();
+      this.env.time.delta = this.env.time.now - this.env.time.prev;
+      this.env.time.prev = this.env.time.now;
 
-        let now = Date.now();
-        let delta = now - this.prev_time;
-        this.prev_time = now;
+      this.setPointerSpeed();
 
-        this._setPointerSpeed();
-
-        if ( this._tracking.pointer.is_down ) { this._tracking.pointer.time_down += delta; }
-
-        this._loop = window.requestAnimationFrame( () => this._onAnimationFrame() );
+      this.loop = window.requestAnimationFrame(() => this.onAnimationFrame());
     }
 
-    _onPointerDown(e) {
+    onPointerDown(e) {
+      this.tracking.pointer.isDown = true;
 
-        this._setPointer( e.clientX, e.clientY );
+      this.setPointer(e.clientX, e.clientY);
 
-        this._tracking.pointer.is_down = true;
+      this.tracking.pointer.travel.startX = e.clientX;
+      this.tracking.pointer.travel.startY = e.clientY;
+      this.tracking.pointer.travel.x = 0;
+      this.tracking.pointer.travel.y = 0;
     }
 
-    _onPointerMove(e) {
+    onPointerMove(e) {
+      this.setPointer(e.clientX, e.clientY);
 
-        this._setPointer( e.clientX, e.clientY );
-
-        this._tracking.pointer.is_moving = true;
+      this.tracking.pointer.travel.x = e.clientX - this.tracking.pointer.travel.startX;
+      this.tracking.pointer.travel.y = e.clientY - this.tracking.pointer.travel.startY;
     }
 
-    _onPointerUp(e) {
+    onPointerUp(e) {
+      this.tracking.pointer.isDown = false;
 
-        this._tracking.pointer.time_down = 0;
+      this.setPointer(e.clientX, e.clientY);
 
-        this._setPointer( e.clientX, e.clientY );
-
-        this._tracking.pointer.is_down = false;
-        this._tracking.pointer.is_moving = false;
-    }
-
-    // Relay to pointer handler
-    _onTouchStart(e) {
-
-        this._tracking.touch = true;
-
-        e.clientX = e.touches[0].clientX;
-        e.clientY = e.touches[0].clientY;
-
-        this._onPointerDown( e );
+      this.tracking.pointer.travel.startX = 0;
+      this.tracking.pointer.travel.startY = 0;
+      this.tracking.pointer.travel.x = 0;
+      this.tracking.pointer.travel.y = 0;
     }
 
     // Relay to pointer handler
-    _onTouchMove(e) {
-
-        e.clientX = e.touches[0].clientX;
-        e.clientY = e.touches[0].clientY;
-
-        this._onPointerMove( e );
+    onTouchStart(e) {
+      this.tracking.touch = true;
+      e.clientX = e.touches[0].clientX;
+      e.clientY = e.touches[0].clientY;
+      this.onPointerDown(e);
     }
 
     // Relay to pointer handler
-    _onTouchEnd(e) {
-
-        e.clientX = e.changedTouches[0].clientX;
-        e.clientY = e.changedTouches[0].clientY;
-
-        this._onPointerUp( e );
+    onTouchMove(e) {
+      e.clientX = e.touches[0].clientX;
+      e.clientY = e.touches[0].clientY;
+      this.onPointerMove(e);
     }
 
-}
+    // Relay to pointer handler
+    onTouchEnd(e) {
+      e.clientX = e.changedTouches[0].clientX;
+      e.clientY = e.changedTouches[0].clientY;
+      this.onPointerUp(e);
+    }
+  }
