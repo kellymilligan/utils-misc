@@ -1,4 +1,3 @@
-
 /*
 
   TickManager
@@ -17,7 +16,7 @@
 
 */
 
-import { uuid } from 'utils/unique_id'
+import { uuid } from '@/utils/math/uniqueId'
 
 class TickManager {
 
@@ -112,7 +111,7 @@ class TickManager {
 
   updateTime() {
 
-    const now = performance.now();
+    const now = performance.now()
 
     this.state.time.elapsed = now
     this.state.time.delta = now - this.state.time.prev
