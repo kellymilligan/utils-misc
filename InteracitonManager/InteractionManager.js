@@ -1,7 +1,9 @@
 /*
-  A stand-alone controller class that handles user input.
-  Internally manages event bindings and input dimensions.
+A stand-alone controller class that handles user input.
+Internally manages event bindings and input dimensions.
 */
+
+import ticker from '@/utils/TickManager'
 
 export default class InteractionManager {
 
@@ -23,7 +25,9 @@ export default class InteractionManager {
         y: 0,
       },
 
-      // Normalized coordinates with offset origin (between -1 and 1 on both axes)
+      // normal coordinates where top/left is 0/0, and bottom/right is 1/1
+      // Can be used with an origin at the viewport center by multiplying by 2
+      // and subtracting 1, giving a range from -1 to +1 on both axes.
       normal: {
         x: 0,
         y: 0,
@@ -100,9 +104,9 @@ export default class InteractionManager {
 
     this.tracking.active = true
 
+    this.refresh()
     this.setPointer( 0, 0 )
     this.setPointerSpeed()
-    this.refresh()
 
     this.attachEvents()
 
@@ -121,16 +125,19 @@ export default class InteractionManager {
     Dimensions can be overridden if passed as arguments
   */
   refresh(
-    width = this.element.offsetWidth,
-    height = this.element.offsetHeight,
-    left = this.element.offsetLeft,
-    top = this.element.offsetTop
+    width = window.innerWidth,
+    height = window.innerHeight,
+    left = 0,
+    top = 0
   ) {
 
     this.env.width = width
     this.env.height = height
     this.env.left = left
     this.env.top = top
+
+    if ( width === 0 ) console.warn( 'InteractionManager.js: this.element\'s width is currently zero, this will break normal.x calculations due to division by zero.' )
+    if ( height === 0 ) console.warn( 'InteractionManager.js: this.element\'s height is currently zero, this will break normal.y calculations due to division by zero.' )
   }
 
   // Bindings
@@ -139,7 +146,7 @@ export default class InteractionManager {
   attachEvents() {
 
     // Start animation loop
-    this.loop = window.requestAnimationFrame( () => this.onAnimationFrame() )
+    this.tickID = ticker.on( () => this.onTick() )
 
     // Listen for the interaction initiatator on the element itself, but then
     // continue to track move and release events on the document. Allows the
@@ -157,7 +164,7 @@ export default class InteractionManager {
 
   detachEvents() {
 
-    window.cancelAnimationFrame(this.loop)
+    ticker.off( this.tickID )
 
     this.element.removeEventListener( 'mousedown', this.onPointerDown, false )
     document.removeEventListener( 'mousemove', this.onPointerMove, false )
@@ -177,8 +184,8 @@ export default class InteractionManager {
     this.tracking.data.client.y = y - this.env.top
     this.tracking.data.offset.x = this.tracking.data.client.x - ( this.env.width * 0.5 )
     this.tracking.data.offset.y = this.tracking.data.client.y - ( this.env.height * 0.5 )
-    this.tracking.data.normal.x = ( this.tracking.data.offset.x / this.env.width ) * 2
-    this.tracking.data.normal.y = ( this.tracking.data.offset.y / this.env.height ) * 2
+    this.tracking.data.normal.x = this.tracking.data.client.x / this.env.width
+    this.tracking.data.normal.y = this.tracking.data.client.y / this.env.height
   }
 
   setPointerSpeed() {
@@ -191,8 +198,8 @@ export default class InteractionManager {
 
     // Absolute delta
     this.tracking.data.speed.distance = Math.sqrt(
-      (this.tracking.data.speed.x * this.tracking.data.speed.x) +
-      (this.tracking.data.speed.y * this.tracking.data.speed.y)
+      ( this.tracking.data.speed.x * this.tracking.data.speed.x ) +
+      ( this.tracking.data.speed.y * this.tracking.data.speed.y )
     )
 
     // Movement status
@@ -202,7 +209,7 @@ export default class InteractionManager {
   // Handlers
   // --------
 
-  onAnimationFrame() {
+  onTick() {
 
     this.env.time.now = Date.now()
     this.env.time.delta = this.env.time.now - this.env.time.prev
@@ -210,7 +217,6 @@ export default class InteractionManager {
 
     this.setPointerSpeed()
 
-    this.loop = window.requestAnimationFrame( () => this.onAnimationFrame() )
   }
 
   onPointerDown = ( e ) => {
@@ -221,8 +227,12 @@ export default class InteractionManager {
 
     this.tracking.data.travel.startX = e.clientX
     this.tracking.data.travel.startY = e.clientY
+
+    // Reset deltas
     this.tracking.data.travel.x = 0
     this.tracking.data.travel.y = 0
+    this.tracking.data.speed.prev.x = this.tracking.data.normal.x
+    this.tracking.data.speed.prev.y = this.tracking.data.normal.y
   }
 
   onPointerMove = ( e ) => {
