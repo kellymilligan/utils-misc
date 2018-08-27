@@ -3,7 +3,7 @@ A stand-alone controller class that handles user input.
 Internally manages event bindings and input dimensions.
 */
 
-import ticker from '../TickManager'
+import ticker from '@/utils/TickManager'
 
 export default class InteractionManager {
 
