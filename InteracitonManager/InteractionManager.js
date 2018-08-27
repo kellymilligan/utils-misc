@@ -3,7 +3,7 @@ A stand-alone controller class that handles user input.
 Internally manages event bindings and input dimensions.
 */
 
-import ticker from '@/utils/TickManager'
+import ticker from '../TickManager'
 
 export default class InteractionManager {
 
@@ -46,7 +46,7 @@ export default class InteractionManager {
         x: 0,                 // Delta on x-axis
         y: 0,                 // Delta on y-axis
         distance: 0,          // Absolute delta
-        prev: { x: 0, y: 0 }, // Previous X,y normal position, used to calculate delta
+        prev: { x: 0, y: 0 }, // Previous X,Y normal position, used to calculate delta
       }
 
     }
@@ -100,7 +100,7 @@ export default class InteractionManager {
   */
   start() {
 
-    if (this.tracking.active) { console.warn('InteractionManager: start() was called while already active...'); return this.tracking }
+    if ( this.tracking.active ) { console.warn('InteractionManager: start() was called while already active...'); return this.tracking }
 
     this.tracking.active = true
 
@@ -216,7 +216,6 @@ export default class InteractionManager {
     this.env.time.prev = this.env.time.now
 
     this.setPointerSpeed()
-
   }
 
   onPointerDown = ( e ) => {
@@ -239,8 +238,10 @@ export default class InteractionManager {
 
     this.setPointer( e.clientX, e.clientY )
 
-    this.tracking.data.travel.x = e.clientX - this.tracking.data.travel.startX
-    this.tracking.data.travel.y = e.clientY - this.tracking.data.travel.startY
+    if ( this.tracking.data.isDown ) {
+      this.tracking.data.travel.x = e.clientX - this.tracking.data.travel.startX
+      this.tracking.data.travel.y = e.clientY - this.tracking.data.travel.startY
+    }
   }
 
   onPointerUp = ( e ) => {
