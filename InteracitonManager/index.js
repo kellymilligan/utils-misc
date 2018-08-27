@@ -8,9 +8,9 @@
   import { InteractionManager } from 'utils/InteractionManager'
 */
 
-import InteractionManager from './InteractionManager';
+import InteractionManager from './InteractionManager'
 
-const instance = new InteractionManager();
+const instance = new InteractionManager()
 
-export { InteractionManager };
-export default instance;
+export { InteractionManager }
+export default instance
