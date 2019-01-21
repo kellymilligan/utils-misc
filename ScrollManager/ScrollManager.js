@@ -110,16 +110,18 @@ class ScrollManager {
 
   onWheel = e => {
 
-      const deltaX = e.wheelDeltaX || e.deltaX * -1
-      const deltaY = e.wheelDeltaY || e.deltaY * -1
-      const directionX = deltaX === 0 ? 0 : deltaX > 0 ? 1 : -1
-      const directionY = deltaY === 0 ? 0 : deltaY > 0 ? -1 : 1
+    // @TODO - Add checks and normalization between different browser/OS
 
-      this.state.wheel = { deltaX, deltaY, directionX, directionY }
+    const deltaX = e.wheelDeltaX || e.deltaX * -1
+    const deltaY = e.wheelDeltaY || e.deltaY * -1
+    const directionX = deltaX === 0 ? 0 : deltaX > 0 ? 1 : -1
+    const directionY = deltaY === 0 ? 0 : deltaY > 0 ? -1 : 1
 
-      window.requestAnimationFrame( () => {
-        this.state.wheel = { deltaX: 0, deltaY: 0, directionX: 0, directionY: 0 }
-      } )
+    this.state.wheel = { deltaX, deltaY, directionX, directionY }
+
+    window.requestAnimationFrame( () => {
+      this.state.wheel = { deltaX: 0, deltaY: 0, directionX: 0, directionY: 0 }
+    } )
   }
 
 }
