@@ -98,14 +98,14 @@ export default class InteractionManager {
     Start tracking interactions
     Returns a subscription object to the tracking data
   */
-  start() {
+  start( startingX = 0, startingY = 0 ) {
 
     if ( this.tracking.active ) { console.warn('InteractionManager: start() was called while already active...'); return this.tracking }
 
     this.tracking.active = true
 
     this.refresh()
-    this.setPointer( 0, 0 )
+    this.setPointer( startingX, startingY )
     this.setPointerSpeed()
 
     this.attachEvents()
