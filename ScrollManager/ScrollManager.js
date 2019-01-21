@@ -16,6 +16,12 @@ class ScrollManager {
       scrollTop: 0,
       scrollHeight: 0,
       scroll: 0,
+      wheel: {
+        deltaX: 0,
+        deltaY: 0,
+        directionX: 0,
+        directionY: 0
+      }
     }
   }
 
@@ -61,9 +67,9 @@ class ScrollManager {
 
   // Static update
   // (manaually request a viewport udpate from outside)
-  refresh( h = null ) {
+  refresh() {
 
-    this.onResize( h )
+    this.onResize()
     this.onScroll()
   }
 
@@ -74,28 +80,46 @@ class ScrollManager {
 
     window.addEventListener( 'resize', this.onResize )
     window.addEventListener( 'scroll', this.onScroll )
+    if ( 'onwheel' in document ) window.addEventListener( 'wheel', this.onWheel )
+    if ( 'onmousewheel' in document ) window.addEventListener( 'mousewheel', this.onMouseWheel )
   }
 
   removeEvents() {
 
     window.removeEventListener( 'resize', this.onResize )
     window.removeEventListener( 'scroll', this.onScroll )
+    if ( 'onwheel' in document ) window.removeEventListener( 'wheel', this.onWheel )
+    if ( 'onmousewheel' in document ) window.removeEventListener( 'mousewheel', this.onMouseWheel )
   }
 
   // Handlers
   // --------
 
-  onResize = ( h ) => {
+  onResize = e => {
 
-    this.state.windowHeight = h ? h : window.innerHeight
+    this.state.windowHeight = window.innerHeight
     this.state.scrollHeight = document.body.scrollHeight
   }
 
-  onScroll = () => {
+  onScroll = e => {
 
     this.state.scrollTop = window.pageYOffset || document.documentElement.scrollTop
     this.state.scroll = this.state.scrollHeight === this.state.windowHeight ? 0 : // Prevent division by zero when no scrollable height
                         this.state.scrollTop / ( this.state.scrollHeight - this.state.windowHeight )
+  }
+
+  onWheel = e => {
+
+      const deltaX = e.wheelDeltaX || e.deltaX * -1
+      const deltaY = e.wheelDeltaY || e.deltaY * -1
+      const directionX = deltaX === 0 ? 0 : deltaX > 0 ? 1 : -1
+      const directionY = deltaY === 0 ? 0 : deltaY > 0 ? -1 : 1
+
+      this.state.wheel = { deltaX, deltaY, directionX, directionY }
+
+      window.requestAnimationFrame( () => {
+        this.state.wheel = { deltaX: 0, deltaY: 0, directionX: 0, directionY: 0 }
+      } )
   }
 
 }
