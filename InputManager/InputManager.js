@@ -5,7 +5,7 @@ Internally manages event bindings and input dimensions.
 
 import ticker from '@/utils/TickManager'
 
-export default class InteractionManager {
+export default class InputManager {
 
   get defaults() {
     return {
@@ -100,7 +100,7 @@ export default class InteractionManager {
   */
   start( startingX = 0, startingY = 0 ) {
 
-    if ( this.tracking.active ) { console.warn('InteractionManager: start() was called while already active...'); return this.tracking }
+    if ( this.tracking.active ) { console.warn('InputManager: start() was called while already active...'); return this.tracking }
 
     this.tracking.active = true
 
@@ -136,8 +136,8 @@ export default class InteractionManager {
     this.env.left = left
     this.env.top = top
 
-    if ( width === 0 ) console.warn( 'InteractionManager.js: this.element\'s width is currently zero, this will break normal.x calculations due to division by zero.' )
-    if ( height === 0 ) console.warn( 'InteractionManager.js: this.element\'s height is currently zero, this will break normal.y calculations due to division by zero.' )
+    if ( width === 0 ) console.warn( 'InputManager.js: this.element\'s width is currently zero, this will break normal.x calculations due to division by zero.' )
+    if ( height === 0 ) console.warn( 'InputManager.js: this.element\'s height is currently zero, this will break normal.y calculations due to division by zero.' )
   }
 
   // Bindings
