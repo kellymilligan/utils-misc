@@ -1,16 +1,16 @@
 /*
-  Establish the InteractionManager as a global singleton.
+  Establish the InputManager as a global singleton.
 
   The main instance can be imported as a standard module:
-  import InteractionManager from 'utils/InteractionManager'
+  import InputManager from 'utils/InputManager'
 
   Access to the underlying class is still available if needed:
-  import { InteractionManager } from 'utils/InteractionManager'
+  import { InputManager } from 'utils/InputManager'
 */
 
-import InteractionManager from './InteractionManager'
+import InputManager from './InputManager'
 
-const instance = new InteractionManager()
+const instance = new InputManager()
 
-export { InteractionManager }
+export { InputManager }
 export default instance
